@@ -1,3 +1,80 @@
 spring:
   application:
-    name: ticketingSystem
+    name: ticketing_system
+
+  # ==========================================
+  # 1. Database 설정 (PostgreSQL)
+  # ==========================================
+  datasource:
+    # Docker Compose가 실행되면 이 설정이 자동으로 주입되지만,
+    # 명시적으로 적어두는 것이 가독성과 유지보수에 좋음
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/ticketing_db
+    username: postgres
+    password: password
+
+  # ==========================================
+  # 2. JPA & Hibernate 설정
+  # ==========================================
+  jpa:
+    open-in-view: false # OSIV 종료 (성능 최적화)
+
+    # create: 매번 삭제 후 재생성 (데이터 날아감)
+    # update: 변경된 부분만 반영 (데이터 유지됨)
+    hibernate:
+      ddl-auto: update
+
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect # PostgreSQL 방언 사용
+
+    defer-datasource-initialization: true
+
+  # ==========================================
+  # 3. Redis 설정
+  # ==========================================
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  # ==========================================
+  # 4. Kafka 설정
+  # (Kafka 컨테이너가 없으면 연결 오류가 날 수 있음
+  # ==========================================
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: ticketing-group
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+  # ==========================================
+  # 5. Docker Compose 설정 (활성화)
+  # ==========================================
+  docker:
+    compose:
+      enabled: true  # true로 변경하여 앱 실행 시 DB 컨테이너를 자동으로 띄움
+      file: compose.yaml # 프로젝트 루트의 compose.yaml 파일을 읽음
+      lifecycle-management: start-only # 앱 꺼져도 DB는 켜두기 (데이터 확인에 용이) 또는 start-and-stop
+
+# ==========================================
+# 6. 로깅 및 모니터링
+# ==========================================
+logging:
+  level:
+    root: INFO
+    com.example.ticketing_system: DEBUG
+    org.hibernate.SQL: DEBUG # 실행되는 SQL 확인용
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus, metrics
